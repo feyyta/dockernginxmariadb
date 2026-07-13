@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inception · ma2t</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c2230;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --nginx: #3fb950;
+    --wp: #58a6ff;
+    --db: #d29922;
+    --danger: #f85149;
+    --mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(26px, 5vw, 40px);
+    line-height: 1.2;
+    margin: 10px 0 14px;
+  }
+  .lead { color: var(--muted); max-width: 60ch; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 72px;
+  }
+  h2 {
+    font-family: var(--mono);
+    font-size: 22px;
+    margin: 6px 0 10px;
+  }
+  .sub { color: var(--muted); margin-bottom: 24px; max-width: 65ch; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+
+  /* ---- architecture diagram ---- */
+  .diagram {
+    margin-top: 40px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 22px;
+  }
+  .diagram-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .node {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    padding: 12px 16px;
+  }
+  .node b { font-family: var(--mono); }
+  .node .desc { color: var(--muted); font-size: 14px; }
+  .flow {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 10px 4px;
+  }
+  .flow::after { content: " ↓"; color: var(--accent); }
+  .network {
+    border: 1.5px dashed var(--accent);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .network > .diagram-title { color: var(--accent); }
+  .n-nginx { border-left: 3px solid var(--nginx); }
+  .n-nginx b { color: var(--nginx); }
+  .n-wp { border-left: 3px solid var(--wp); }
+  .n-wp b { color: var(--wp); }
+  .n-db { border-left: 3px solid var(--db); }
+  .n-db b { color: var(--db); }
+  .volumes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .volume {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .volume b { color: var(--text); font-family: var(--mono); }
+  .v-wp { border-top: 3px solid var(--wp); }
+  .v-db { border-top: 3px solid var(--db); }
+
+  /* ---- file table ---- */
+  .files { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .file-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) 3fr;
+    gap: 16px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 14px;
+  }
+  .file-row:last-child { border-bottom: none; }
+  .file-row .path { font-family: var(--mono); }
+  .file-row .what { color: var(--muted); }
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    padding: 1px 7px;
+    margin-left: 8px;
+    vertical-align: 2px;
+  }
+  .tag-db { background: rgba(210,153,34,.15); color: var(--db); }
+  .tag-wp { background: rgba(88,166,255,.15); color: var(--wp); }
+  .tag-ng { background: rgba(63,185,80,.15); color: var(--nginx); }
+  @media (max-width: 620px) {
+    .file-row { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* ---- service cards ---- */
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+  .card .step {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .card h3 { font-family: var(--mono); font-size: 18px; margin-bottom: 10px; }
+  .card p { color: var(--text); margin-bottom: 10px; }
+  .card ul { margin: 10px 0 0 20px; color: var(--muted); }
+  .card li { margin-bottom: 6px; }
+  .c-db { border-left: 4px solid var(--db); }
+  .c-db .step, .c-db h3 { color: var(--db); }
+  .c-wp { border-left: 4px solid var(--wp); }
+  .c-wp .step, .c-wp h3 { color: var(--wp); }
+  .c-ng { border-left: 4px solid var(--nginx); }
+  .c-ng .step, .c-ng h3 { color: var(--nginx); }
+
+  .pattern {
+    border: 1.5px dashed var(--accent);
+    border-radius: 10px;
+    background: rgba(88,166,255,.06);
+    padding: 18px 22px;
+    margin-top: 26px;
+  }
+  .pattern b { font-family: var(--mono); color: var(--accent); }
+  .pattern p { color: var(--muted); margin-top: 6px; }
+
+  /* ---- request timeline ---- */
+  .timeline { list-style: none; margin-top: 8px; }
+  .timeline li {
+    position: relative;
+    padding: 0 0 26px 52px;
+  }
+  .timeline li::before {
+    content: attr(data-n);
+    position: absolute;
+    left: 0; top: 0;
+    width: 32px; height: 32px;
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .timeline li::after {
+    content: "";
+    position: absolute;
+    left: 15.5px; top: 36px; bottom: 4px;
+    width: 1.5px;
+    background: var(--border);
+  }
+  .timeline li:last-child::after { display: none; }
+  .timeline b { font-family: var(--mono); }
+  .timeline .t-ng::before { border-color: var(--nginx); color: var(--nginx); }
+  .timeline .t-wp::before { border-color: var(--wp); color: var(--wp); }
+  .timeline .t-db::before { border-color: var(--db); color: var(--db); }
+  .timeline p { color: var(--muted); font-size: 15px; }
+
+  /* ---- bug cards ---- */
+  .bug {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--danger);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+  .bug h3 { font-family: var(--mono); font-size: 16px; color: var(--danger); margin-bottom: 8px; }
+  .bug p { color: var(--text); font-size: 15px; }
+  .bug .fix { margin-top: 10px; color: var(--nginx); font-size: 15px; }
+  .bug .fix b { font-family: var(--mono); }
+
+  /* ---- Q&A ---- */
+  details {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  summary {
+    cursor: pointer;
+    padding: 15px 20px;
+    font-weight: 600;
+    list-style: none;
+  }
+  summary::before { content: "› "; color: var(--accent); font-family: var(--mono); }
+  details[open] summary::before { content: "⌄ "; }
+  summary::-webkit-details-marker { display: none; }
+  details .answer {
+    padding: 0 20px 18px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  details .answer b { color: var(--text); }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="kicker">Inception · ma2t</p>
+  <h1>Une requête, trois conteneurs, deux volumes</h1>
+  <p class="lead">Une petite infrastructure web construite from scratch avec docker-compose :
+  l'architecture complète, le rôle de chaque fichier, le trajet d'une requête et les pièges
+  rencontrés en route.</p>
+
+  <!-- ================= ARCHITECTURE ================= -->
+  <div class="diagram">
+    <p class="diagram-title">VM hôte — seul le port 443 est publié</p>
+    <div class="node">
+      <b>Navigateur</b>
+      <div class="desc">https://ma2t.be</div>
+    </div>
+    <p class="flow">HTTPS · 443 · TLSv1.3</p>
+    <div class="network">
+      <p class="diagram-title">Réseau Docker « inception » (bridge + DNS interne)</p>
+      <div class="node n-nginx">
+        <b>nginx</b>
+        <div class="desc">déchiffre le TLS, sert le statique, délègue les .php</div>
+      </div>
+      <p class="flow">FastCGI · wordpress:9000</p>
+      <div class="node n-wp">
+        <b>wordpress</b>
+        <div class="desc">php-fpm exécute le code WordPress</div>
+      </div>
+      <p class="flow">SQL · mariadb:3306</p>
+      <div class="node n-db">
+        <b>mariadb</b>
+        <div class="desc">stocke articles, comptes, commentaires</div>
+      </div>
+    </div>
+    <div class="volumes">
+      <div class="volume v-wp"><b>wp_data</b> → /home/ma2t/data/wordpress — monté dans
+        <b>wordpress</b> et <b>nginx</b> (/var/www/html)</div>
+      <div class="volume v-db"><b>mariadb_data</b> → /home/ma2t/data/mariadb — monté dans
+        <b>mariadb</b> (/var/lib/mysql)</div>
+    </div>
+  </div>
+
+  <!-- ================= STRUCTURE ================= -->
+  <p class="section-label">01 — La structure</p>
+  <h2>10 fichiers, chacun un seul rôle</h2>
+  <p class="sub">Orchestration (compose), construction (un dossier autonome par service) et
+  configuration (conf/ et tools/) sont séparées — chaque service se comprend et se rebuild
+  indépendamment.</p>
+
+  <div class="files">
+    <div class="file-row"><span class="path">Makefile</span>
+      <span class="what">l'entrée unique : <code>make</code> crée les dossiers de données puis <code>docker compose up -d --build</code></span></div>
+    <div class="file-row"><span class="path">srcs/docker-compose.yml</span>
+      <span class="what">déclare les 3 services, le réseau, les volumes bindés et les secrets</span></div>
+    <div class="file-row"><span class="path">srcs/.env</span>
+      <span class="what">variables non sensibles : domaine, noms de base et d'utilisateurs, emails</span></div>
+    <div class="file-row"><span class="path">mariadb/Dockerfile<span class="tag tag-db">MARIADB</span></span>
+      <span class="what">debian:bookworm + mariadb-server, purge de /var/lib/mysql</span></div>
+    <div class="file-row"><span class="path">mariadb/conf/50-server.cnf<span class="tag tag-db">MARIADB</span></span>
+      <span class="what"><code>bind-address = 0.0.0.0</code> : accepter les connexions du réseau Docker</span></div>
+    <div class="file-row"><span class="path">mariadb/tools/init.sh<span class="tag tag-db">MARIADB</span></span>
+      <span class="what">au 1er démarrage : crée la base, wpuser, le mot de passe root</span></div>
+    <div class="file-row"><span class="path">wordpress/Dockerfile<span class="tag tag-wp">WORDPRESS</span></span>
+      <span class="what">php-fpm 8.2 + php-mysql + wp-cli (aucun serveur web dans cette image)</span></div>
+    <div class="file-row"><span class="path">wordpress/conf/www.conf<span class="tag tag-wp">WORDPRESS</span></span>
+      <span class="what">php-fpm écoute en TCP sur le port <code>9000</code></span></div>
+    <div class="file-row"><span class="path">wordpress/tools/setup.sh<span class="tag tag-wp">WORDPRESS</span></span>
+      <span class="what">attend la base, installe WordPress via wp-cli au 1er démarrage</span></div>
+    <div class="file-row"><span class="path">nginx/Dockerfile<span class="tag tag-ng">NGINX</span></span>
+      <span class="what">nginx + certificat auto-signé généré au build avec openssl</span></div>
+    <div class="file-row"><span class="path">nginx/conf/inception.conf<span class="tag tag-ng">NGINX</span></span>
+      <span class="what">server block : 443 seul, TLS 1.2/1.3, <code>fastcgi_pass wordpress:9000</code></span></div>
+  </div>
+
+  <!-- ================= SERVICES ================= -->
+  <p class="section-label">02 — Les trois services</p>
+  <h2>Comprendre dans l'ordre de démarrage</h2>
+  <p class="sub">C'est l'ordre du <code>depends_on</code> : chaque service ne se comprend
+  qu'avec celui d'en dessous.</p>
+
+  <div class="card c-db">
+    <p class="step">Étape 1 · le socle</p>
+    <h3>MariaDB</h3>
+    <p>Le plus simple, et il introduit <em>le</em> pattern du projet (encadré ci-dessous).
+    <code>if [ ! -d /var/lib/mysql/mysql ]</code> = la persistance : on n'initialise que si le
+    volume est vierge.</p>
+    <ul>
+      <li><code>FLUSH PRIVILEGES;</code> en tête du SQL d'init, sinon les utilisateurs sont ignorés en mode bootstrap</li>
+      <li>Suppression des utilisateurs anonymes créés par mariadb-install-db</li>
+      <li><code>bind-address = 0.0.0.0</code> pour accepter les connexions venant du réseau Docker</li>
+    </ul>
+  </div>
+
+  <div class="card c-wp">
+    <p class="step">Étape 2 · le gros morceau</p>
+    <h3>WordPress / php-fpm</h3>
+    <p>Même squelette que MariaDB, trois nouveautés : la boucle <code>until</code> qui attend la
+    base (car <code>depends_on</code> attend le <em>démarrage</em> du conteneur, pas que la base
+    soit <em>prête</em>), wp-cli (<code>download</code> / <code>config create</code> /
+    <code>core install</code>), et <code>listen = 9000</code>.</p>
+    <ul>
+      <li>php-fpm exécute du PHP, il ne parle pas HTTP — c'est pour ça qu'il n'y a aucun nginx dans cette image</li>
+      <li>Les mots de passe viennent des Docker secrets, jamais de l'image</li>
+    </ul>
+  </div>
+
+  <div class="card c-ng">
+    <p class="step">Étape 3 · la prise murale</p>
+    <h3>NGINX</h3>
+    <p>Court, mais il branche tout : <code>listen 443 ssl</code> uniquement (pas de bloc port 80
+    → connexion refusée), certificat auto-signé au build, et
+    <code>fastcgi_pass wordpress:9000;</code> — le DNS du réseau Docker résout
+    <code>wordpress</code>, et 9000 est le port vu à l'étape 2.</p>
+    <ul>
+      <li>Les images et le CSS ? nginx les sert lui-même, via le volume partagé</li>
+      <li>Les .php ? php-fpm, via FastCGI</li>
+      <li>Le certificat peut être auto-signé car le site n'est servi qu'en local</li>
+    </ul>
+  </div>
+
+  <div class="pattern">
+    <b>si les données n'existent pas → initialiser, puis exec le serveur en avant-plan</b>
+    <p>Le pattern des trois entrypoints. Le <code>if</code> donne la persistance (on ne
+    réinstalle jamais deux fois), le <code>exec</code> fait du serveur le PID 1 — aucun processus
+    en arrière-plan, aucune boucle infinie.</p>
+  </div>
+
+  <!-- ================= REQUEST ================= -->
+  <p class="section-label">03 — Relire à l'envers</p>
+  <h2>Le trajet d'une requête</h2>
+  <p class="sub">L'ordre de démarrage explique comment c'est construit ; l'ordre de requête
+  explique comment ça marche.</p>
+
+  <ol class="timeline">
+    <li data-n="1"><b>Le navigateur</b>
+      <p>ouvre https://ma2t.be — le port 443 est le seul publié par la stack.</p></li>
+    <li data-n="2" class="t-ng"><b>nginx</b>
+      <p>termine la connexion TLS (v1.2/v1.3, certificat auto-signé). Fichier statique ? il le
+      sert directement depuis le volume wp_data.</p></li>
+    <li data-n="3" class="t-ng"><b>nginx</b>
+      <p>pour un .php : transmet la requête en FastCGI à <code>wordpress:9000</code> — nom résolu
+      par le DNS interne du réseau bridge.</p></li>
+    <li data-n="4" class="t-wp"><b>php-fpm</b>
+      <p>exécute le code WordPress (index.php et compagnie) depuis le même volume partagé.</p></li>
+    <li data-n="5" class="t-db"><b>MariaDB</b>
+      <p>reçoit les requêtes SQL de WordPress sur <code>mariadb:3306</code> avec le compte
+      wpuser, et lit/écrit dans mariadb_data.</p></li>
+    <li data-n="6"><b>La réponse</b>
+      <p>HTML remonte : php-fpm → nginx qui la chiffre en TLS → navigateur.</p></li>
+  </ol>
+
+  <!-- ================= BUGS ================= -->
+  <p class="section-label">04 — Problèmes rencontrés</p>
+  <h2>Trois bugs vécus</h2>
+  <p class="sub">Chacun prouve une vraie subtilité de Docker.</p>
+
+  <div class="bug">
+    <h3>① Le volume pré-rempli</h3>
+    <p>Un volume nommé vide est rempli avec le contenu de l'image au premier montage. La base
+    pré-installée par le paquet Debian court-circuitait le script d'init.</p>
+    <p class="fix"><b>Fix :</b> <code>rm -rf /var/lib/mysql/*</code> et
+    <code>/var/www/html/*</code> au build.</p>
+  </div>
+
+  <div class="bug">
+    <h3>② Le bootstrap sans privilèges</h3>
+    <p><code>mysqld --bootstrap</code> tourne en mode skip-grant-tables : les CREATE USER étaient
+    ignorés sans erreur.</p>
+    <p class="fix"><b>Fix :</b> <code>FLUSH PRIVILEGES;</code> en tête du SQL d'init.</p>
+  </div>
+
+  <div class="bug">
+    <h3>③ Les utilisateurs anonymes</h3>
+    <p>mariadb-install-db crée <code>''@'localhost'</code>, plus spécifique que
+    <code>'wpuser'@'%'</code> : le login local de wpuser était refusé — alors que WordPress, lui,
+    passait.</p>
+    <p class="fix"><b>Fix :</b> <code>DROP USER ''@'localhost';</code> dans l'init.</p>
+  </div>
+
+  <!-- ================= Q&A ================= -->
+  <p class="section-label">05 — Pour aller plus loin</p>
+  <h2>Questions &amp; réponses</h2>
+  <p class="sub">Les choix techniques du projet, expliqués.</p>
+
+  <details>
+    <summary>Docker vs machine virtuelle : la différence ?</summary>
+    <div class="answer">Une VM émule une machine entière avec son propre noyau. Un conteneur
+    n'est qu'un processus isolé (namespaces + cgroups) qui <b>partage le noyau de l'hôte</b>.
+    Conséquence : démarrage en secondes et quelques Mo de surcoût, contre des minutes et des Go
+    pour une VM — mais isolation moins forte.</div>
+  </details>
+
+  <details>
+    <summary>Image vs conteneur ? Et le rôle de docker-compose ?</summary>
+    <div class="answer">Une image est une recette figée en couches, décrite par un Dockerfile.
+    Un conteneur est une instance vivante d'une image. Compose est un orchestrateur local : le
+    YAML déclare services, réseau, volumes et secrets, et
+    <code>docker compose up -d --build</code> construit et démarre le tout dans l'ordre des
+    <code>depends_on</code>.</div>
+  </details>
+
+  <details>
+    <summary>Une image avec ou sans compose, quelle différence ?</summary>
+    <div class="answer">Aucune : c'est la même image. Sans compose il faudrait tout faire à la
+    main — <code>docker build</code>, <code>docker network create</code>, un
+    <code>docker run</code> à dix options par conteneur. Compose rend l'ensemble déclaratif et
+    reproductible.</div>
+  </details>
+
+  <details>
+    <summary>C'est quoi, le réseau Docker de ce projet ?</summary>
+    <div class="answer">Un réseau bridge privé nommé <code>inception</code>. Docker y fournit un
+    DNS interne : nginx joint <code>wordpress:9000</code> et WordPress joint
+    <code>mariadb:3306</code> par leur nom de service. Seul nginx publie un port vers l'extérieur
+    (443) — la base et php-fpm sont injoignables depuis l'hôte.</div>
+  </details>
+
+  <details>
+    <summary>Pourquoi une boucle d'attente dans setup.sh alors que depends_on existe ?</summary>
+    <div class="answer"><code>depends_on</code> attend que le conteneur mariadb soit
+    <b>démarré</b>, pas que le serveur SQL soit <b>prêt</b> à accepter des connexions. La boucle
+    réessaie (30 fois maximum — bornée, donc pas une boucle infinie) jusqu'à ce qu'un vrai
+    <code>SELECT 1</code> passe.</div>
+  </details>
+
+  <details>
+    <summary>Où vivent les mots de passe ?</summary>
+    <div class="answer">Dans <code>secrets/</code> à la racine, ignoré par git. Compose les monte
+    en fichiers dans <code>/run/secrets/</code> et les scripts les lisent avec <code>cat</code>.
+    Jamais dans le Dockerfile, jamais en ARG de build (ça resterait lisible dans
+    <code>docker history</code>), jamais commités.</div>
+  </details>
+
+  <details>
+    <summary>Pourquoi debian:bookworm ?</summary>
+    <div class="answer">C'est l'avant-dernière version stable de Debian (la 12, « bookworm »,
+    derrière la 13 « trixie »). L'image est en plus multi-arch : le même Dockerfile build sur une
+    machine ARM64 et sur une machine x86_64.</div>
+  </details>
+
+  <details>
+    <summary>Comment marche la persistance ?</summary>
+    <div class="answer">Les deux volumes sont bindés sur <code>/home/ma2t/data/</code> sur
+    l'hôte. Les scripts d'init ne font quelque chose que si le volume est vierge
+    (<code>if [ ! -d ... ]</code> / <code>if [ ! -f wp-config.php ]</code>). Après un reboot,
+    <code>restart: always</code> relance les conteneurs, qui retrouvent leurs données et sautent
+    l'initialisation.</div>
+  </details>
+
+  <footer>
+    Inception · ma2t — nginx + WordPress/php-fpm + MariaDB, from scratch sur debian:bookworm.
+  </footer>
+
+</div>
+</body>
+</html>
