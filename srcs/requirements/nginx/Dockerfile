@@ -7,7 +7,7 @@ RUN mkdir -p /etc/nginx/ssl \
 	&& openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
 		-keyout /etc/nginx/ssl/inception.key \
 		-out /etc/nginx/ssl/inception.crt \
-		-subj "/C=BE/O=42/CN=mcastrat.42.be"
+		-subj "/C=BE/O=ma2t/CN=ma2t.be"
 
 COPY conf/inception.conf /etc/nginx/conf.d/inception.conf
 RUN rm -f /etc/nginx/sites-enabled/default \

@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by mcastrat.*
+*This project has been created by ma2t.*
 
 # Inception
 
@@ -22,16 +22,16 @@ The stack is made of three containers:
 
 The containers communicate through a dedicated Docker network, and the
 site files and the database are stored in two volumes located in
-`/home/mcastrat/data`, so nothing is lost when the containers are removed
+`/home/ma2t/data`, so nothing is lost when the containers are removed
 or the machine reboots.
 
 ## Instructions
 
-You need Docker, docker-compose and make. The domain `mcastrat.42.be` must
+You need Docker, docker-compose and make. The domain `ma2t.be` must
 point to the machine, for example with this line in `/etc/hosts`:
 
 ```
-127.0.0.1 mcastrat.42.be
+127.0.0.1 ma2t.be
 ```
 
 Credentials are not versioned. Before the first run, create a `secrets`
@@ -48,11 +48,11 @@ Then:
 make        # build the images and start the stack
 make down   # stop the containers
 make clean  # stop and remove containers, images and volumes
-make fclean # clean + delete the data in /home/mcastrat/data
+make fclean # clean + delete the data in /home/ma2t/data
 make re     # full rebuild from scratch
 ```
 
-The site is then available at https://mcastrat.42.be (the certificate is
+The site is then available at https://ma2t.be (the certificate is
 self-signed, so the browser shows a warning the first time).
 
 ## Design choices
@@ -79,7 +79,7 @@ the outside. MariaDB and php-fpm are unreachable from the host.
 
 **Docker volumes vs bind mounts.** A bind mount maps a host folder directly
 into a container, while a named volume is managed by Docker. The subject
-requires the data to live in `/home/mcastrat/data`, so I use named volumes
+requires the data to live in `/home/ma2t/data`, so I use named volumes
 configured with bind options: they are declared and managed in the compose
 file like normal volumes, but the data is stored at the required path.
 

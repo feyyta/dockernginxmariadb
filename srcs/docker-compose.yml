@@ -1,7 +1,7 @@
 services:
   mariadb:
     container_name: mariadb
-    image: mariadb:mcastrat
+    image: mariadb:ma2t
     build: ./requirements/mariadb
     env_file: .env
     secrets:
@@ -15,7 +15,7 @@ services:
 
   wordpress:
     container_name: wordpress
-    image: wordpress:mcastrat
+    image: wordpress:ma2t
     build: ./requirements/wordpress
     env_file: .env
     secrets:
@@ -31,7 +31,7 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx:mcastrat
+    image: nginx:ma2t
     build: ./requirements/nginx
     ports:
       - "443:443"
@@ -49,13 +49,13 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/mcastrat/data/mariadb
+      device: /home/ma2t/data/mariadb
   wp_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/mcastrat/data/wordpress
+      device: /home/ma2t/data/wordpress
 
 networks:
   inception:
